@@ -1,0 +1,27 @@
+[package]
+name = "rtlsdr"
+version = "0.0.1"
+authors = ["Adam Greig <adam@adamgreig.com>"]
+description = "Rust bindings for librtlsdr"
+repository = "https://github.com/adamgreig/rtlsdr-rs"
+homepage = "https://github.com/adamgreig/rtlsdr-rs"
+readme = "README.md"
+keywords = ["SDR", "ffi", "rtlsdr"]
+license = "MIT"
+
+[lib]
+name = "rtlsdr"
+path = "src/lib.rs"
+test = false
+doctest = false
+bench = false
+doc = true
+plugin = false
+
+[[bin]]
+name = "rtlsdr_demo"
+path = "src/demo.rs"
+test = false
+doctest = false
+bench = false
+doc = false

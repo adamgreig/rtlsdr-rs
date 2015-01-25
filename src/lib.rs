@@ -8,21 +8,21 @@ extern crate libc;
 mod ffi;
 
 pub struct RTLSDRError {
-    errno: int,
+    errno: i32,
     errstr: String
 }
 
-impl std::fmt::Show for RTLSDRError {
+impl std::fmt::Display for RTLSDRError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "RTL-SDR error: {} ({})", self.errstr, self.errno)
     }
 }
 
 fn rtlsdr_error(errno: libc::c_int, errstr: &str) -> RTLSDRError {
-    RTLSDRError { errno: errno as int, errstr: errstr.to_string() }
+    RTLSDRError { errno: errno as i32, errstr: errstr.to_string() }
 }
 
-#[deriving(Copy,Show)]
+#[derive(Copy,Debug)]
 pub enum DirectSampling {
     Disabled, I, Q
 }
@@ -39,15 +39,16 @@ impl Drop for RTLSDRDevice {
 } 
 
 /// Get the number of detected RTL-SDR devices.
-pub fn get_device_count() -> int {
+pub fn get_device_count() -> i32 {
     let count = unsafe { ffi::rtlsdr_get_device_count() };
-    count as int
+    count as i32
 }
 
 /// Get the name for a specific RTL-SDR device index.
-pub fn get_device_name(index: int) -> String {
+pub fn get_device_name(index: i32) -> String {
     let s = unsafe { ffi::rtlsdr_get_device_name(index as libc::uint32_t) };
-    unsafe { std::c_str::CString::new(s, false) }.as_str().unwrap().to_string()
+    let slice = unsafe { std::ffi::c_str_to_bytes(&s) };
+    std::str::from_utf8(slice).unwrap().to_string()
 }
 
 /// A set of USB strings for an RTL-SDR device.
@@ -56,32 +57,38 @@ pub struct USBStrings {
 }
 
 /// Get the USB strings for a specific RTL-SDR device index.
-pub fn get_device_usb_strings(index: int)
+pub fn get_device_usb_strings(index: i32)
                                      -> Result<USBStrings, RTLSDRError> {
-    let mut mn: [libc::c_char, ..256] = [0, ..256];
-    let mut pd: [libc::c_char, ..256] = [0, ..256];
-    let mut sr: [libc::c_char, ..256] = [0, ..256];
+    let mut mn: [libc::c_char; 256] = [0; 256];
+    let mut pd: [libc::c_char; 256] = [0; 256];
+    let mut sr: [libc::c_char; 256] = [0; 256];
     match unsafe { ffi::rtlsdr_get_device_usb_strings(index as libc::uint32_t,
                                                       mn.as_mut_ptr(),
                                                       pd.as_mut_ptr(),
                                                       sr.as_mut_ptr()) } {
         0 => unsafe { Ok(USBStrings {
-            manufacturer: String::from_raw_buf(mn.as_ptr() as *const u8),
-            product: String::from_raw_buf(pd.as_ptr() as *const u8),
-            serial: String::from_raw_buf(sr.as_ptr() as *const u8)
+            manufacturer: std::str::from_utf8(
+                std::ffi::c_str_to_bytes(&mn.as_ptr()))
+                .unwrap().to_string(),
+            product: std::str::from_utf8(
+                std::ffi::c_str_to_bytes(&pd.as_ptr()))
+                .unwrap().to_string(),
+            serial: std::str::from_utf8(
+                std::ffi::c_str_to_bytes(&sr.as_ptr()))
+                .unwrap().to_string()
         })},
         err => Err(rtlsdr_error(err, "Unknown"))
     }
 }
 
 /// Get the index of a specific RTL-SDR by serial number.
-pub fn get_index_by_serial(serial: String) -> Result<int, RTLSDRError> {
-    let s = serial.to_c_str();
+pub fn get_index_by_serial(serial: String) -> Result<i32, RTLSDRError> {
+    let s = std::ffi::CString::from_vec(serial.into_bytes());
     match unsafe { ffi::rtlsdr_get_index_by_serial(s.as_ptr()) } {
         -1 => Err(rtlsdr_error(-1, "No name provided")),
         -2 => Err(rtlsdr_error(-2, "No devices found")),
         -3 => Err(rtlsdr_error(-3, "No devices with that name found")),
-        index => Ok(index as int)
+        index => Ok(index as i32)
     }
 }
 
@@ -89,7 +96,7 @@ pub fn get_index_by_serial(serial: String) -> Result<int, RTLSDRError> {
 ///
 /// Returns a Result on an RTLSDRDevice object which exposes further
 /// methods.
-pub fn open(index: int) -> Result<RTLSDRDevice, RTLSDRError> {
+pub fn open(index: i32) -> Result<RTLSDRDevice, RTLSDRError> {
     let mut device: RTLSDRDevice = unsafe { std::mem::zeroed() };
     let idx = index as libc::uint32_t;
     match unsafe { ffi::rtlsdr_open(&mut device.ptr, idx) } {
@@ -113,7 +120,7 @@ impl RTLSDRDevice {
     /// are injecting your own clock signal or correcting for the frequency of
     /// the onboard xtal. In general the RTL and the tuner will be fed from the
     /// same clock.
-    pub fn set_xtal_freq(&mut self, rtl_freq: uint, tuner_freq: uint)
+    pub fn set_xtal_freq(&mut self, rtl_freq: u32, tuner_freq: u32)
                          -> Result<(), RTLSDRError> {
         let rfreq = rtl_freq as libc::uint32_t;
         let tfreq = tuner_freq as libc::uint32_t;
@@ -127,12 +134,12 @@ impl RTLSDRDevice {
     ///
     /// Returns a tuple of (RTL freq, tuner freq).
     pub fn get_xtal_freq(&mut self)
-                         -> Result<(uint, uint), RTLSDRError> {
+                         -> Result<(u32, u32), RTLSDRError> {
         let mut rtl_freq: libc::uint32_t = 0;
         let mut tuner_freq: libc::uint32_t = 0;
         match unsafe { ffi::rtlsdr_get_xtal_freq(self.ptr, &mut rtl_freq,
                                                  &mut tuner_freq) } {
-            0 => Ok((rtl_freq as uint, tuner_freq as uint)),
+            0 => Ok((rtl_freq as u32, tuner_freq as u32)),
             err => Err(rtlsdr_error(err, "Unknown"))
         }
     }
@@ -140,24 +147,30 @@ impl RTLSDRDevice {
     /// Get USB strings for an opened device.
     pub fn get_usb_strings(&mut self)
                            -> Result<USBStrings, RTLSDRError> {
-        let mut mn: [libc::c_char, ..256] = [0, ..256];
-        let mut pd: [libc::c_char, ..256] = [0, ..256];
-        let mut sr: [libc::c_char, ..256] = [0, ..256];
+        let mut mn: [libc::c_char; 256] = [0; 256];
+        let mut pd: [libc::c_char; 256] = [0; 256];
+        let mut sr: [libc::c_char; 256] = [0; 256];
         match unsafe { ffi::rtlsdr_get_usb_strings(self.ptr,
                                                    mn.as_mut_ptr(),
                                                    pd.as_mut_ptr(),
                                                    sr.as_mut_ptr()) } {
             0 => unsafe { Ok(USBStrings {
-                manufacturer: String::from_raw_buf(mn.as_ptr() as *const u8),
-                product: String::from_raw_buf(pd.as_ptr() as *const u8),
-                serial: String::from_raw_buf(sr.as_ptr() as *const u8)
+                manufacturer: std::str::from_utf8(
+                    std::ffi::c_str_to_bytes(&mn.as_ptr()))
+                    .unwrap().to_string(),
+                product: std::str::from_utf8(
+                    std::ffi::c_str_to_bytes(&pd.as_ptr()))
+                    .unwrap().to_string(),
+                serial: std::str::from_utf8(
+                    std::ffi::c_str_to_bytes(&sr.as_ptr()))
+                    .unwrap().to_string()
             })},
             err => Err(rtlsdr_error(err, "Unknown"))
         }
     }
 
     /// Set the RTL-SDR's centre frequency (in Hz).
-    pub fn set_center_freq(&mut self, frequency: uint)
+    pub fn set_center_freq(&mut self, frequency: u32)
                            -> Result<(), RTLSDRError> {
         let freq = frequency as libc::uint32_t;
         match unsafe { ffi::rtlsdr_set_center_freq(self.ptr, freq)} {
@@ -167,15 +180,15 @@ impl RTLSDRDevice {
     }
 
     /// Get the RTL-SDR's center frequency (in Hz).
-    pub fn get_center_freq(&mut self) -> Result<uint, RTLSDRError> {
+    pub fn get_center_freq(&mut self) -> Result<u32, RTLSDRError> {
         match unsafe { ffi::rtlsdr_get_center_freq(self.ptr) } {
             0 => Err(rtlsdr_error(0, "Unknown")),
-            freq => Ok(freq as uint)
+            freq => Ok(freq as u32)
         }
     }
 
     /// Set the RTL-SDR's frequency correction (in ppm).
-    pub fn set_freq_correction(&mut self, ppm: int) -> Result<(), RTLSDRError> {
+    pub fn set_freq_correction(&mut self, ppm: i32) -> Result<(), RTLSDRError> {
         let cppm = ppm as libc::c_int;
         match unsafe { ffi::rtlsdr_set_freq_correction(self.ptr, cppm) } {
             0 => Ok(()),
@@ -184,29 +197,29 @@ impl RTLSDRDevice {
     }
 
     /// Get the RTL-SDR's current frequency correction (in ppm).
-    pub fn get_freq_correction(&mut self) -> int {
+    pub fn get_freq_correction(&mut self) -> i32 {
         let ppm = unsafe { ffi::rtlsdr_get_freq_correction(self.ptr) };
-        ppm as int
+        ppm as i32
     }
 
     /// Get the RTL-SDR's tuner type.
     ///
-    /// Returns a tuple (id: int, name: String).
-    pub fn get_tuner_type(&mut self) -> (int, String) {
+    /// Returns a tuple (id: i32, name: String).
+    pub fn get_tuner_type(&mut self) -> (i32, String) {
         match unsafe { ffi::rtlsdr_get_tuner_type(self.ptr) } {
             ffi::RTLSDR_TUNER_E4000 =>
-                (ffi::RTLSDR_TUNER_E4000 as int, "E4000".to_string()),
+                (ffi::RTLSDR_TUNER_E4000 as i32, "E4000".to_string()),
             ffi::RTLSDR_TUNER_FC0012 =>
-                (ffi::RTLSDR_TUNER_FC0012 as int, "FC0012".to_string()),
+                (ffi::RTLSDR_TUNER_FC0012 as i32, "FC0012".to_string()),
             ffi::RTLSDR_TUNER_FC0013 =>
-                (ffi::RTLSDR_TUNER_FC0013 as int, "FC0013".to_string()),
+                (ffi::RTLSDR_TUNER_FC0013 as i32, "FC0013".to_string()),
             ffi::RTLSDR_TUNER_FC2580 =>
-                (ffi::RTLSDR_TUNER_FC2580 as int, "FC2580".to_string()),
+                (ffi::RTLSDR_TUNER_FC2580 as i32, "FC2580".to_string()),
             ffi::RTLSDR_TUNER_R820T => 
-                (ffi::RTLSDR_TUNER_R820T as int, "R820T".to_string()),
+                (ffi::RTLSDR_TUNER_R820T as i32, "R820T".to_string()),
             ffi::RTLSDR_TUNER_R828D =>
-                (ffi::RTLSDR_TUNER_R828D as int, "R828D".to_string()),
-            _ => (ffi::RTLSDR_TUNER_UNKNOWN as int, "Unknown".to_string())
+                (ffi::RTLSDR_TUNER_R828D as i32, "R828D".to_string()),
+            _ => (ffi::RTLSDR_TUNER_UNKNOWN as i32, "Unknown".to_string())
         }
     }
 
@@ -215,16 +228,16 @@ impl RTLSDRDevice {
     /// Gains are specified in tenths-of-a-dB. The number of allowable gains
     /// depends on the attached hardware.
     pub fn get_tuner_gains(&mut self)
-                           -> Result<std::vec::Vec<int>, RTLSDRError> {
+                           -> Result<std::vec::Vec<i32>, RTLSDRError> {
         use std::vec::Vec;
         let null = std::ptr::null_mut();
         let len = unsafe { ffi::rtlsdr_get_tuner_gains(self.ptr, null) };
         if len > 0 {
-            let mut out: Vec<libc::c_int> = Vec::with_capacity(len as uint);
-            unsafe { out.set_len(len as uint) };
+            let mut out: Vec<libc::c_int> = Vec::with_capacity(len as usize);
+            unsafe { out.set_len(len as usize) };
             match unsafe { ffi::rtlsdr_get_tuner_gains(self.ptr,
                                                        out.as_mut_ptr()) } {
-                l if l == len => Ok(out.iter().map(|&g| g as int).collect()),
+                l if l == len => Ok(out.iter().map(|&g| g as i32).collect()),
                 err => Err(rtlsdr_error(err, "Could not get list of gains"))
             }
         } else {
@@ -233,7 +246,7 @@ impl RTLSDRDevice {
     }
 
     /// Set tuner gain (from list of allowable gains).
-    pub fn set_tuner_gain(&mut self, gain: int) -> Result<(), RTLSDRError> {
+    pub fn set_tuner_gain(&mut self, gain: i32) -> Result<(), RTLSDRError> {
         let g = gain as libc::c_int;
         match unsafe { ffi::rtlsdr_set_tuner_gain(self.ptr, g) } {
             0 => Ok(()),
@@ -242,15 +255,15 @@ impl RTLSDRDevice {
     }
 
     /// Get current tuner gain (in tenths of dB)
-    pub fn get_tuner_gain(&mut self) -> int {
+    pub fn get_tuner_gain(&mut self) -> i32 {
         let gain = unsafe { ffi::rtlsdr_get_tuner_gain(self.ptr) };
-        gain as int
+        gain as i32
     }
 
     /// Set tuner IF gain (in tenths of dB).
     ///
     /// `stage` specifies which intermediate gain stage to set (1-6 for E4000).
-    pub fn set_tuner_if_gain(&mut self, stage: int, gain: int)
+    pub fn set_tuner_if_gain(&mut self, stage: i32, gain: i32)
                              -> Result<(), RTLSDRError> {
         match unsafe { ffi::rtlsdr_set_tuner_if_gain(self.ptr,
                                                      stage as libc::c_int,
@@ -273,7 +286,7 @@ impl RTLSDRDevice {
     }
 
     /// Set sample rate (in Hz).
-    pub fn set_sample_rate(&mut self, rate: uint) -> Result<(), RTLSDRError> {
+    pub fn set_sample_rate(&mut self, rate: u32) -> Result<(), RTLSDRError> {
         let r = rate as libc::c_uint;
         match unsafe { ffi::rtlsdr_set_sample_rate(self.ptr, r) } {
             0 => Ok(()),
@@ -282,10 +295,10 @@ impl RTLSDRDevice {
     }
 
     /// Get current sample rate (in Hz).
-    pub fn get_sample_rate(&mut self) -> Result<uint, RTLSDRError> {
+    pub fn get_sample_rate(&mut self) -> Result<u32, RTLSDRError> {
         match unsafe { ffi::rtlsdr_get_sample_rate(self.ptr) } {
             0 => Err(rtlsdr_error(0, "Unknown")),
-            rate => Ok(rate as uint)
+            rate => Ok(rate as u32)
         }
     }
 
@@ -372,7 +385,7 @@ impl RTLSDRDevice {
     }
 
     /// Read a buffer synchronously.
-    pub fn read_sync(&mut self, len: uint)
+    pub fn read_sync(&mut self, len: usize)
                      -> Result<std::vec::Vec<u8>, RTLSDRError> {
         use std::vec::Vec;
         let mut v: Vec<u8> = Vec::with_capacity(len);
@@ -382,7 +395,7 @@ impl RTLSDRDevice {
                                              &mut n) } {
             0 => {
                 println!("Got data, length {}", n);
-                unsafe { v.set_len(n as uint) };
+                unsafe { v.set_len(n as usize) };
                 Ok(v)
             },
             err => Err(rtlsdr_error(err, "Unknown"))

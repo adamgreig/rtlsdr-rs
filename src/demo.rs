@@ -4,11 +4,13 @@
 
 extern crate rtlsdr;
 
+use std::io::File;
+
 fn main() {
     let count = rtlsdr::get_device_count();
     println!("Found {} device(s)", count);
 
-    for index in range(0, count) {
+    for index in 0..count {
         println!("Index {}:", index);
 
         let name = rtlsdr::get_device_name(index);
@@ -56,36 +58,43 @@ fn main() {
         let (t_id, t_name) = dev.get_tuner_type();
         println!("  Tuner is a {} (id {})", &t_name, &t_id);
 
-        println!("  Setting gain to manual...");
-        dev.set_tuner_gain_mode(true).unwrap();
+        //println!("  Setting gain to manual...");
+        //dev.set_tuner_gain_mode(true).unwrap();
 
         let gains = dev.get_tuner_gains().unwrap();
-        println!("  Available gains: {}", &gains);
+        println!("  Available gains: {:?}", &gains);
 
-        println!("  Setting gain to second option {}dB",
-                 (gains[1] as f64)/10.0f64);
-        dev.set_tuner_gain(gains[1]).unwrap();
+        //println!("  Setting gain to second option {}dB",
+                 //(gains[1] as f64)/10.0f64);
+        //dev.set_tuner_gain(gains[1]).unwrap();
 
-        let gain = dev.get_tuner_gain();
-        println!("  Current gain: {}dB", (gain as f64)/10.0f64);
+        //let gain = dev.get_tuner_gain();
+        //println!("  Current gain: {}dB", (gain as f64)/10.0f64);
 
-        println!("  Setting sample rate to 64kHz...");
-        dev.set_sample_rate(64000).unwrap();
+        println!("  Setting sample rate to 24kHz...");
+        dev.set_sample_rate(24000).unwrap();
 
         let rate = dev.get_sample_rate().unwrap();
         println!("  Current sample rate: {}Hz", rate);
 
-        println!("  Setting test mode off...");
-        dev.set_test_mode(false).unwrap();
+        //println!("  Setting test mode off...");
+        //dev.set_test_mode(false).unwrap();
 
-        println!("  Setting AGC off...");
-        dev.set_agc_mode(false).unwrap();
+        //println!("  Setting AGC off...");
+        //dev.set_agc_mode(false).unwrap();
 
-        println!("  Disabling direct sampling");
-        dev.set_direct_sampling(rtlsdr::DirectSampling::Disabled).unwrap();
+        //println!("  Disabling direct sampling");
+        //dev.set_direct_sampling(rtlsdr::DirectSampling::Disabled).unwrap();
 
         let m = dev.get_direct_sampling().unwrap();
-        println!("  Direct sampling mode: {}", m);
+        println!("  Direct sampling mode: {:?}", m);
+
+        dev.reset_buffer().unwrap();
+
+        let data = dev.read_sync(131072).unwrap();
+
+        let mut file = File::create(&Path::new("data.bin"));
+        file.write(data.as_slice());
 
         println!("  Closing device...");
         dev.close().unwrap();

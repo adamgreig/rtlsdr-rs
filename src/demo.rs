@@ -96,7 +96,7 @@ fn main() {
         let data = dev.read_sync(131072).unwrap();
 
         let mut file = File::create(&Path::new("data.bin")).unwrap();
-        file.write(&data);
+        file.write(&data).unwrap();
 
         println!("  Closing device...");
         dev.close().unwrap();

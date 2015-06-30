@@ -5,7 +5,6 @@
 #![allow(dead_code)]
 
 extern crate libc;
-use std::ffi::CStr;
 mod ffi;
 
 #[derive(Debug)]
@@ -49,7 +48,7 @@ pub fn get_device_count() -> i32 {
 /// Get the name for a specific RTL-SDR device index.
 pub fn get_device_name(index: i32) -> String {
     let s = unsafe { ffi::rtlsdr_get_device_name(index as libc::uint32_t) };
-    let slice = unsafe { CStr::from_ptr(s).to_bytes() };
+    let slice = unsafe { std::ffi::CStr::from_ptr(s).to_bytes() };
     std::str::from_utf8(slice).unwrap().to_string()
 }
 
@@ -70,13 +69,13 @@ pub fn get_device_usb_strings(index: i32)
                                                       sr.as_mut_ptr()) } {
         0 => unsafe { Ok(USBStrings {
             manufacturer: std::str::from_utf8(
-                CStr::from_ptr(mn.as_ptr()).to_bytes())
+                std::ffi::CStr::from_ptr(mn.as_ptr()).to_bytes())
                 .unwrap().to_string(),
             product: std::str::from_utf8(
-                CStr::from_ptr(pd.as_ptr()).to_bytes())
+                std::ffi::CStr::from_ptr(pd.as_ptr()).to_bytes())
                 .unwrap().to_string(),
             serial: std::str::from_utf8(
-                CStr::from_ptr(sr.as_ptr()).to_bytes())
+                std::ffi::CStr::from_ptr(sr.as_ptr()).to_bytes())
                 .unwrap().to_string()
         })},
         err => Err(rtlsdr_error(err, "Unknown"))
@@ -158,13 +157,13 @@ impl RTLSDRDevice {
                                                    sr.as_mut_ptr()) } {
             0 => unsafe { Ok(USBStrings {
                 manufacturer: std::str::from_utf8(
-                    CStr::from_ptr(mn.as_ptr()).to_bytes())
+                    std::ffi::CStr::from_ptr(mn.as_ptr()).to_bytes())
                     .unwrap().to_string(),
                 product: std::str::from_utf8(
-                    CStr::from_ptr(pd.as_ptr()).to_bytes())
+                    std::ffi::CStr::from_ptr(pd.as_ptr()).to_bytes())
                     .unwrap().to_string(),
                 serial: std::str::from_utf8(
-                    CStr::from_ptr(sr.as_ptr()).to_bytes())
+                    std::ffi::CStr::from_ptr(sr.as_ptr()).to_bytes())
                     .unwrap().to_string()
             })},
             err => Err(rtlsdr_error(err, "Unknown"))

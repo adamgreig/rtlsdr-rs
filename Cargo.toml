@@ -26,6 +26,5 @@ doctest = false
 bench = false
 doc = false
 
-
 [dependencies]
 libc = "*"

@@ -5,8 +5,10 @@
 #![allow(dead_code)]
 
 extern crate libc;
+use std::ffi::CStr;
 mod ffi;
 
+#[derive(Debug)]
 pub struct RTLSDRError {
     errno: i32,
     errstr: String
@@ -22,7 +24,7 @@ fn rtlsdr_error(errno: libc::c_int, errstr: &str) -> RTLSDRError {
     RTLSDRError { errno: errno as i32, errstr: errstr.to_string() }
 }
 
-#[derive(Copy,Debug)]
+#[derive(Clone, Copy,Debug)]
 pub enum DirectSampling {
     Disabled, I, Q
 }
@@ -36,7 +38,7 @@ impl Drop for RTLSDRDevice {
     fn drop(&mut self) {
         unsafe { ffi::rtlsdr_close(self.ptr); }
     }
-} 
+}
 
 /// Get the number of detected RTL-SDR devices.
 pub fn get_device_count() -> i32 {
@@ -47,7 +49,7 @@ pub fn get_device_count() -> i32 {
 /// Get the name for a specific RTL-SDR device index.
 pub fn get_device_name(index: i32) -> String {
     let s = unsafe { ffi::rtlsdr_get_device_name(index as libc::uint32_t) };
-    let slice = unsafe { std::ffi::c_str_to_bytes(&s) };
+    let slice = unsafe { CStr::from_ptr(s).to_bytes() };
     std::str::from_utf8(slice).unwrap().to_string()
 }
 
@@ -68,13 +70,13 @@ pub fn get_device_usb_strings(index: i32)
                                                       sr.as_mut_ptr()) } {
         0 => unsafe { Ok(USBStrings {
             manufacturer: std::str::from_utf8(
-                std::ffi::c_str_to_bytes(&mn.as_ptr()))
+                CStr::from_ptr(mn.as_ptr()).to_bytes())
                 .unwrap().to_string(),
             product: std::str::from_utf8(
-                std::ffi::c_str_to_bytes(&pd.as_ptr()))
+                CStr::from_ptr(pd.as_ptr()).to_bytes())
                 .unwrap().to_string(),
             serial: std::str::from_utf8(
-                std::ffi::c_str_to_bytes(&sr.as_ptr()))
+                CStr::from_ptr(sr.as_ptr()).to_bytes())
                 .unwrap().to_string()
         })},
         err => Err(rtlsdr_error(err, "Unknown"))
@@ -83,7 +85,7 @@ pub fn get_device_usb_strings(index: i32)
 
 /// Get the index of a specific RTL-SDR by serial number.
 pub fn get_index_by_serial(serial: String) -> Result<i32, RTLSDRError> {
-    let s = std::ffi::CString::from_vec(serial.into_bytes());
+    let s = std::ffi::CString::new(serial).unwrap();
     match unsafe { ffi::rtlsdr_get_index_by_serial(s.as_ptr()) } {
         -1 => Err(rtlsdr_error(-1, "No name provided")),
         -2 => Err(rtlsdr_error(-2, "No devices found")),
@@ -156,13 +158,13 @@ impl RTLSDRDevice {
                                                    sr.as_mut_ptr()) } {
             0 => unsafe { Ok(USBStrings {
                 manufacturer: std::str::from_utf8(
-                    std::ffi::c_str_to_bytes(&mn.as_ptr()))
+                    CStr::from_ptr(mn.as_ptr()).to_bytes())
                     .unwrap().to_string(),
                 product: std::str::from_utf8(
-                    std::ffi::c_str_to_bytes(&pd.as_ptr()))
+                    CStr::from_ptr(pd.as_ptr()).to_bytes())
                     .unwrap().to_string(),
                 serial: std::str::from_utf8(
-                    std::ffi::c_str_to_bytes(&sr.as_ptr()))
+                    CStr::from_ptr(sr.as_ptr()).to_bytes())
                     .unwrap().to_string()
             })},
             err => Err(rtlsdr_error(err, "Unknown"))
@@ -215,7 +217,7 @@ impl RTLSDRDevice {
                 (ffi::RTLSDR_TUNER_FC0013 as i32, "FC0013".to_string()),
             ffi::RTLSDR_TUNER_FC2580 =>
                 (ffi::RTLSDR_TUNER_FC2580 as i32, "FC2580".to_string()),
-            ffi::RTLSDR_TUNER_R820T => 
+            ffi::RTLSDR_TUNER_R820T =>
                 (ffi::RTLSDR_TUNER_R820T as i32, "R820T".to_string()),
             ffi::RTLSDR_TUNER_R828D =>
                 (ffi::RTLSDR_TUNER_R828D as i32, "R828D".to_string()),

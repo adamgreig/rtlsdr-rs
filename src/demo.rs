@@ -4,7 +4,9 @@
 
 extern crate rtlsdr;
 
-use std::io::File;
+use std::fs::File;
+use std::path::Path;
+use std::io::prelude::*;
 
 fn main() {
     let count = rtlsdr::get_device_count();
@@ -21,7 +23,7 @@ fn main() {
         println!("  Product:      {}", strs.product);
         println!("  Serial:       {}", strs.serial);
         println!("");
-        
+
         let idx2 = rtlsdr::get_index_by_serial(strs.serial).unwrap();
         println!("  Index looked up by serial: {}", idx2);
 
@@ -93,11 +95,10 @@ fn main() {
 
         let data = dev.read_sync(131072).unwrap();
 
-        let mut file = File::create(&Path::new("data.bin"));
-        file.write(data.as_slice());
+        let mut file = File::create(&Path::new("data.bin")).unwrap();
+        file.write(&data).unwrap();
 
         println!("  Closing device...");
         dev.close().unwrap();
     }
 }
-

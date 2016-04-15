@@ -395,7 +395,6 @@ impl RTLSDRDevice {
         match unsafe { ffi::rtlsdr_read_sync(self.ptr, ptr, len as libc::c_int,
                                              &mut n) } {
             0 => {
-                println!("Got data, length {}", n);
                 unsafe { v.set_len(n as usize) };
                 Ok(v)
             },

@@ -303,6 +303,15 @@ impl RTLSDRDevice {
         }
     }
 
+    /// Set bandwidth (in Hz).
+    pub fn set_tuner_bandwidth(&mut self, bw: u32) -> Result<(), RTLSDRError> {
+        let bwc = bw as libc::c_uint;
+        match unsafe { ffi::rtlsdr_set_tuner_bandwidth(self.ptr, bwc) } {
+            0 => Ok(()),
+            err => Err(rtlsdr_error(err, "Unknown"))
+        }
+    }
+
     /// Set test mode on or off.
     ///
     /// Test mode turns on an 8 bit counter rather than sampling the radio

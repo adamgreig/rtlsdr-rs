@@ -97,6 +97,10 @@ extern "C" {
     pub fn rtlsdr_set_tuner_gain_mode(dev: *mut rtlsdr_dev, manual: c_int)
                                       -> c_int;
 
+    // bw=0 means automatic bandwidth selection
+    // return 0 on success
+    pub fn rtlsdr_set_tuner_bandwidth(dev: *mut rtlsdr_dev, bw: uint32_t) -> c_int;
+
     pub fn rtlsdr_set_sample_rate(dev: *mut rtlsdr_dev, rate: uint32_t)
                                   -> c_int;
 

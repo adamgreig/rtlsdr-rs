@@ -98,7 +98,7 @@ pub fn get_index_by_serial(serial: String) -> Result<i32, RTLSDRError> {
 /// Returns a Result on an RTLSDRDevice object which exposes further
 /// methods.
 pub fn open(index: i32) -> Result<RTLSDRDevice, RTLSDRError> {
-    let mut device: RTLSDRDevice = unsafe { std::mem::zeroed() };
+    let mut device: RTLSDRDevice = RTLSDRDevice { ptr: std::ptr::null_mut() };
     let idx = index as libc::uint32_t;
     match unsafe { ffi::rtlsdr_open(&mut device.ptr, idx) } {
         0 => Ok(device),

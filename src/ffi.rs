@@ -14,8 +14,7 @@ pub const RTLSDR_TUNER_R820T: c_int = 5;
 pub const RTLSDR_TUNER_R828D: c_int = 6;
 
 #[allow(non_camel_case_types)]
-#[repr(C)]
-pub struct rtlsdr_dev;
+pub enum rtlsdr_dev {}
 
 #[link(name="rtlsdr")]
 extern "C" {

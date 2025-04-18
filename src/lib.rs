@@ -49,7 +49,7 @@ pub fn get_device_count() -> i32 {
 
 /// Get the name for a specific RTL-SDR device index.
 pub fn get_device_name(index: i32) -> String {
-    let s = unsafe { ffi::rtlsdr_get_device_name(index as libc::uint32_t) };
+    let s = unsafe { ffi::rtlsdr_get_device_name(index as u32) };
     let slice = unsafe { std::ffi::CStr::from_ptr(s).to_bytes() };
     std::str::from_utf8(slice).unwrap().to_string()
 }
@@ -65,7 +65,7 @@ pub fn get_device_usb_strings(index: i32)
     let mut mn: [libc::c_char; 256] = [0; 256];
     let mut pd: [libc::c_char; 256] = [0; 256];
     let mut sr: [libc::c_char; 256] = [0; 256];
-    match unsafe { ffi::rtlsdr_get_device_usb_strings(index as libc::uint32_t,
+    match unsafe { ffi::rtlsdr_get_device_usb_strings(index as u32,
                                                       mn.as_mut_ptr(),
                                                       pd.as_mut_ptr(),
                                                       sr.as_mut_ptr()) } {
@@ -101,7 +101,7 @@ pub fn get_index_by_serial(serial: String) -> Result<i32, RTLSDRError> {
 /// methods.
 pub fn open(index: i32) -> Result<RTLSDRDevice, RTLSDRError> {
     let mut device: RTLSDRDevice = RTLSDRDevice { ptr: std::ptr::null_mut() };
-    let idx = index as libc::uint32_t;
+    let idx = index as u32;
     match unsafe { ffi::rtlsdr_open(&mut device.ptr, idx) } {
         0 => Ok(device),
         err => Err(rtlsdr_error(err, "Unknown"))
@@ -125,8 +125,8 @@ impl RTLSDRDevice {
     /// same clock.
     pub fn set_xtal_freq(&mut self, rtl_freq: u32, tuner_freq: u32)
                          -> Result<(), RTLSDRError> {
-        let rfreq = rtl_freq as libc::uint32_t;
-        let tfreq = tuner_freq as libc::uint32_t;
+        let rfreq = rtl_freq as u32;
+        let tfreq = tuner_freq as u32;
         match unsafe { ffi::rtlsdr_set_xtal_freq(self.ptr, rfreq, tfreq) } {
             0 => Ok(()),
             err => Err(rtlsdr_error(err, "Unknown"))
@@ -138,8 +138,8 @@ impl RTLSDRDevice {
     /// Returns a tuple of (RTL freq, tuner freq).
     pub fn get_xtal_freq(&mut self)
                          -> Result<(u32, u32), RTLSDRError> {
-        let mut rtl_freq: libc::uint32_t = 0;
-        let mut tuner_freq: libc::uint32_t = 0;
+        let mut rtl_freq: u32 = 0;
+        let mut tuner_freq: u32 = 0;
         match unsafe { ffi::rtlsdr_get_xtal_freq(self.ptr, &mut rtl_freq,
                                                  &mut tuner_freq) } {
             0 => Ok((rtl_freq as u32, tuner_freq as u32)),
@@ -175,7 +175,7 @@ impl RTLSDRDevice {
     /// Set the RTL-SDR's centre frequency (in Hz).
     pub fn set_center_freq(&mut self, frequency: u32)
                            -> Result<(), RTLSDRError> {
-        let freq = frequency as libc::uint32_t;
+        let freq = frequency as u32;
         match unsafe { ffi::rtlsdr_set_center_freq(self.ptr, freq)} {
             0 => Ok(()),
             err => Err(rtlsdr_error(err, "Unknown"))
@@ -402,7 +402,7 @@ impl RTLSDRDevice {
         use std::vec::Vec;
         let mut v: Vec<u8> = Vec::with_capacity(len);
         let mut n: libc::c_int = 0;
-        let ptr: *mut libc::c_void = v.as_mut_ptr() as (*mut libc::c_void);
+        let ptr: *mut libc::c_void = v.as_mut_ptr() as *mut libc::c_void;
         match unsafe { ffi::rtlsdr_read_sync(self.ptr, ptr, len as libc::c_int,
                                              &mut n) } {
             0 => {

@@ -17,7 +17,7 @@ pub const RTLSDR_TUNER_R828D: c_int = 6;
 pub enum rtlsdr_dev {}
 
 #[link(name="rtlsdr")]
-extern "C" {
+unsafe extern "C" {
     pub fn rtlsdr_get_device_count() -> uint32_t;
     pub fn rtlsdr_get_device_name(index: uint32_t) -> *const c_char;
 

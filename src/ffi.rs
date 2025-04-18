@@ -2,7 +2,7 @@
 // Copyright Adam Greig <adam@adamgreig.com> 2014
 // Licensed under MIT license
 
-use libc::{c_void, c_int, c_char, c_uchar, uint8_t, uint16_t, uint32_t};
+use libc::{c_void, c_int, c_char, c_uchar};
 
 // rtlsdr_tuner enum
 pub const RTLSDR_TUNER_UNKNOWN: c_int = 0;
@@ -18,31 +18,31 @@ pub enum rtlsdr_dev {}
 
 #[link(name="rtlsdr")]
 unsafe extern "C" {
-    pub fn rtlsdr_get_device_count() -> uint32_t;
-    pub fn rtlsdr_get_device_name(index: uint32_t) -> *const c_char;
+    pub fn rtlsdr_get_device_count() -> u32;
+    pub fn rtlsdr_get_device_name(index: u32) -> *const c_char;
 
     // String buffers must be 256 bytes
     // Returns 0 on success.
     pub fn rtlsdr_get_device_usb_strings(
-        index: uint32_t, manufact: *mut c_char,
+        index: u32, manufact: *mut c_char,
         product: *mut c_char, serial: *mut c_char) -> c_int;
 
     // Returns the index of the first matching device on success, -1 if name is
     // NULL, -2 if no devices found, -3 if no matching devices found
     pub fn rtlsdr_get_index_by_serial(serial: *const c_char) -> c_int;
 
-    pub fn rtlsdr_open(dev: *mut *mut rtlsdr_dev, index: uint32_t) -> c_int;
+    pub fn rtlsdr_open(dev: *mut *mut rtlsdr_dev, index: u32) -> c_int;
     pub fn rtlsdr_close(dev: *mut rtlsdr_dev) -> c_int;
 
     // rtl_freq and tuner_freq in Hz
     // Returns 0 on success.
-    pub fn rtlsdr_set_xtal_freq(dev: *mut rtlsdr_dev, rtl_freq: uint32_t,
-                                tuner_freq: uint32_t) -> c_int;
+    pub fn rtlsdr_set_xtal_freq(dev: *mut rtlsdr_dev, rtl_freq: u32,
+                                tuner_freq: u32) -> c_int;
 
     // rtl_freq and tuner_freq in Hz
     // Returns 0 on success.
-    pub fn rtlsdr_get_xtal_freq(dev: *mut rtlsdr_dev, rtl_freq: *mut uint32_t,
-                                tuner_freq: *mut uint32_t) -> c_int;
+    pub fn rtlsdr_get_xtal_freq(dev: *mut rtlsdr_dev, rtl_freq: *mut u32,
+                                tuner_freq: *mut u32) -> c_int;
 
     // String buffers must be 256 bytes
     // Returns 0 on success.
@@ -52,19 +52,19 @@ unsafe extern "C" {
 
     // Returns 0 on success, -1 if device handle invalid, -2 if EEPROM size is
     // exceeded, -3 if no EEPROM was found
-    pub fn rtlsdr_write_eeprom(dev: *mut rtlsdr_dev, data: *mut uint8_t,
-                               offset: uint8_t, len: uint16_t) -> c_int;
+    pub fn rtlsdr_write_eeprom(dev: *mut rtlsdr_dev, data: *mut u8,
+                               offset: u8, len: u16) -> c_int;
 
     // Returns 0 on success, -1 if device handle invalid, -2 if EEPROM size is
     // exceeded, -3 if no EEPROM was found
-    pub fn rtlsdr_read_eeprom(dev: *mut rtlsdr_dev, data: *mut uint8_t,
-                              offset: uint8_t, len: uint16_t) -> c_int;
+    pub fn rtlsdr_read_eeprom(dev: *mut rtlsdr_dev, data: *mut u8,
+                              offset: u8, len: u16) -> c_int;
 
-    pub fn rtlsdr_set_center_freq(dev: *mut rtlsdr_dev, freq: uint32_t)
+    pub fn rtlsdr_set_center_freq(dev: *mut rtlsdr_dev, freq: u32)
                                   -> c_int;
 
     // Returns frequency in Hz (or 0 on error)
-    pub fn rtlsdr_get_center_freq(dev: *mut rtlsdr_dev) -> uint32_t;
+    pub fn rtlsdr_get_center_freq(dev: *mut rtlsdr_dev) -> u32;
 
     // Returns 0 on success
     pub fn rtlsdr_set_freq_correction(dev: *mut rtlsdr_dev, ppm: c_int)
@@ -98,13 +98,13 @@ unsafe extern "C" {
 
     // bw=0 means automatic bandwidth selection
     // return 0 on success
-    pub fn rtlsdr_set_tuner_bandwidth(dev: *mut rtlsdr_dev, bw: uint32_t) -> c_int;
+    pub fn rtlsdr_set_tuner_bandwidth(dev: *mut rtlsdr_dev, bw: u32) -> c_int;
 
-    pub fn rtlsdr_set_sample_rate(dev: *mut rtlsdr_dev, rate: uint32_t)
+    pub fn rtlsdr_set_sample_rate(dev: *mut rtlsdr_dev, rate: u32)
                                   -> c_int;
 
     // Returns sample rate in Hz (0 on error)
-    pub fn rtlsdr_get_sample_rate(dev: *mut rtlsdr_dev) -> uint32_t;
+    pub fn rtlsdr_get_sample_rate(dev: *mut rtlsdr_dev) -> u32;
 
     // 1 = enable test
     // 0 = disable test
@@ -143,8 +143,8 @@ unsafe extern "C" {
     // Returns 0 on success
     pub fn rtlsdr_read_async(dev: *mut rtlsdr_dev,
                              cb: extern fn(*mut c_uchar,
-                                           uint32_t, *mut c_void),
-                             buf_num: uint32_t, buf_len: uint32_t) -> c_int;
+                                           u32, *mut c_void),
+                             buf_num: u32, buf_len: u32) -> c_int;
     
     // Returns 0 on success
     pub fn rtlsdr_cancel_async(dev: *mut rtlsdr_dev) -> c_int;

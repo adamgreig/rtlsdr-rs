@@ -19,6 +19,8 @@ impl std::fmt::Display for RTLSDRError {
     }
 }
 
+impl std::error::Error for RTLSDRError {}
+
 fn rtlsdr_error(errno: libc::c_int, errstr: &str) -> RTLSDRError {
     RTLSDRError { errno: errno as i32, errstr: errstr.to_string() }
 }
